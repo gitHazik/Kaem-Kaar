@@ -15,7 +15,6 @@ CREATE TABLE public.profiles (
   location_name TEXT,
   location_lat DOUBLE PRECISION,
   location_lng DOUBLE PRECISION,
-  rating_avg NUMERIC DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
@@ -105,7 +104,6 @@ CREATE TABLE public.messages (
   sender_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
-  is_read BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
@@ -126,69 +124,7 @@ CREATE POLICY "Users can delete messages they are part of"
     auth.uid() = sender_id OR auth.uid() = receiver_id
   );
 
-
--- 5. RATINGS
--- ============================================================
-CREATE TABLE public.ratings (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  rater_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  rated_user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE NOT NULL,
-  score INTEGER NOT NULL CHECK (score >= 1 AND score <= 5),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  UNIQUE(rater_id, job_id)
-);
-
-ALTER TABLE public.ratings ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view ratings"
-  ON public.ratings FOR SELECT USING (true);
-
-CREATE POLICY "Users can insert ratings"
-  ON public.ratings FOR INSERT WITH CHECK (auth.uid() = rater_id);
-
--- Auto-update rating average on profiles
-CREATE OR REPLACE FUNCTION public.update_rating_avg()
-RETURNS TRIGGER AS $$
-BEGIN
-  UPDATE public.profiles
-  SET rating_avg = (
-    SELECT COALESCE(AVG(score), 0)
-    FROM public.ratings
-    WHERE rated_user_id = NEW.rated_user_id
-  )
-  WHERE id = NEW.rated_user_id;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
-CREATE TRIGGER on_rating_inserted
-  AFTER INSERT ON public.ratings
-  FOR EACH ROW EXECUTE FUNCTION public.update_rating_avg();
-
-
--- 6. REVIEWS
--- ============================================================
-CREATE TABLE public.reviews (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE,
-  rater_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
-  comment TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
-ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "reviews are publicly readable"
-  ON public.reviews FOR SELECT USING (true);
-
-CREATE POLICY "hirers can insert reviews"
-  ON public.reviews FOR INSERT WITH CHECK (auth.uid() = rater_id);
-
-
--- 7. WORKER AVAILABILITY (future feature — by Hazik, do not remove)
+-- 5. WORKER AVAILABILITY (future feature — by Hazik, do not remove)
 -- ============================================================
 CREATE TABLE public.worker_availability (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
