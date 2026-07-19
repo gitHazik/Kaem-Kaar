@@ -26,7 +26,6 @@ const ChatBubble = ({ message, isMe, timestamp, onDelete }) => {
             </p>
           )}
 
-          {/* This button is now permanent for your messages */}
           {isMe && (
             <button
               onClick={onDelete}
