@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,10 +13,13 @@ const MessagesPage = () => {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchThreads = async () => {
-    if (!user) return;
+  const fetchThreads = useCallback(async () => {
+    if (!user?.id) {
+      setThreads([]);
+      setLoading(false);
+      return;
+    }
 
-    // Improved query to fetch sender/receiver profiles
     const { data: messages, error } = await supabase
       .from("messages")
       .select(`
@@ -42,12 +45,10 @@ const MessagesPage = () => {
     if (messages) {
       const seen = new Map();
       for (const msg of messages) {
-        // Determine who the "other" person is
         const isITheSender = msg.sender_id === user.id;
         const otherId = isITheSender ? msg.receiver_id : msg.sender_id;
         const otherProfile = isITheSender ? msg.receiver : msg.sender;
 
-        // Validation to prevent corrupted threads
         if (!otherId || !msg.job_id || otherId === "null") {
           continue;
         }
@@ -68,11 +69,11 @@ const MessagesPage = () => {
       setThreads(Array.from(seen.values()));
     }
     setLoading(false);
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     fetchThreads();
-  }, [user]);
+  }, [fetchThreads]);
 
   const handleDeleteThread = async (e, jobId, otherId) => {
     e.stopPropagation();

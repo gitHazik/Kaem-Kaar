@@ -6,18 +6,24 @@ export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    const stored = localStorage.getItem("app-theme");
+    if (typeof window === "undefined") return "dark";
+    const stored = window.localStorage.getItem("app-theme");
     return stored || "dark";
   });
 
   useEffect(() => {
+    if (typeof document === "undefined") return;
+
     const root = document.documentElement;
     if (theme === "dark") {
       root.classList.add("dark");
     } else {
       root.classList.remove("dark");
     }
-    localStorage.setItem("app-theme", theme);
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("app-theme", theme);
+    }
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
