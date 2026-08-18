@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -78,7 +78,9 @@ const JobDetailPage = () => {
 
   const isHirer = job?.hirer_id === user?.id;
 
-  const fetchJobAndApplicants = async () => {
+  const fetchJobAndApplicants = useCallback(async () => {
+    if (!id) return;
+
     try {
       const { data: jobData, error: jobError } = await supabase
         .from("jobs")
@@ -90,7 +92,6 @@ const JobDetailPage = () => {
       setJob(jobData);
       setAcceptedWorkerId(null);
 
-      // Hirer Side: Fetch all applications
       if (jobData?.hirer_id === user?.id) {
         const { data: appData } = await supabase
           .from("applications")
@@ -102,9 +103,8 @@ const JobDetailPage = () => {
         if (acceptedApplication?.worker_id) {
           setAcceptedWorkerId(acceptedApplication.worker_id);
         }
-      } 
-      
-      // Worker Side: Fetch my application
+      }
+
       if (jobData?.hirer_id !== user?.id && user) {
         const { data: myAppData } = await supabase
           .from("applications")
@@ -119,17 +119,16 @@ const JobDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, user]);
 
   useEffect(() => {
     fetchJobAndApplicants();
 
-    // REAL-TIME LISTENER: Updates Hirer's list if a Worker applies/undos
     const channel = supabase
       .channel(`job-updates-${id}`)
       .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'applications', filter: `job_id=eq.${id}` },
+        "postgres_changes",
+        { event: "*", schema: "public", table: "applications", filter: `job_id=eq.${id}` },
         () => fetchJobAndApplicants()
       )
       .subscribe();
@@ -137,7 +136,7 @@ const JobDetailPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [id, user]);
+  }, [fetchJobAndApplicants, id]);
 
   const handleApply = async () => {
     if (!user) return;
@@ -246,6 +245,17 @@ const JobDetailPage = () => {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
 
+  if (!job) {
+    return (
+      <AppShell header={<h2 className="font-bold">Job Portal</h2>}>
+        <div className="px-4 py-10 text-center">
+          <p className="text-base font-bold text-foreground">This job is no longer available.</p>
+          <Button className="mt-4" onClick={() => navigate("/jobs")}>Back to jobs</Button>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell header={<h2 className="font-bold">Job Portal</h2>}>
       <div className="px-4 py-6 space-y-6 pb-24">
@@ -310,7 +320,7 @@ const JobDetailPage = () => {
             {job?.status === "in_progress" ? (
               <div className="bg-muted/50 p-8 rounded-[2rem] text-center border-border">
                 <p className="font-black text-lg">Work Started! 🎉</p>
-                <Button variant="link" onClick={() => navigate(`/chat/${id}/${user.id}`)}>Chat with Employer</Button>
+                <Button variant="link" onClick={() => navigate(`/chat/${id}/${job.hirer_id}`)}>Chat with Employer</Button>
               </div>
             ) : job?.status === "open" ? (
               userApplication ? (

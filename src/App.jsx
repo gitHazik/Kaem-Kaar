@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -7,19 +7,19 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Loader2 } from "lucide-react";
 
-import HomePage from "./pages/HomePage";
-import JobFeedPage from "./pages/JobFeedPage";
-import PostJobPage from "./pages/PostJobPage";
-import PostAvailabilityPage from "./pages/PostAvailabilityPage";
-import JobDetailPage from "./pages/JobDetailPage";
-import ChatPage from "./pages/ChatPage";
-import MessagesPage from "./pages/MessagesPage";
-import ProfilePage from "./pages/ProfilePage";
-import WorkerProfileSetup from "./pages/WorkerProfileSetup";
-import RoleSelectionPage from "./pages/RoleSelectionPage";
-import LoginPage from "./pages/LoginPage";
-import AIChatbotPage from "./pages/AIChatbotPage";
-import SplashScreen from "./pages/SplashScreen";
+const HomePage = lazy(() => import("./pages/HomePage"));
+const JobFeedPage = lazy(() => import("./pages/JobFeedPage"));
+const PostJobPage = lazy(() => import("./pages/PostJobPage"));
+const PostAvailabilityPage = lazy(() => import("./pages/PostAvailabilityPage"));
+const JobDetailPage = lazy(() => import("./pages/JobDetailPage"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
+const MessagesPage = lazy(() => import("./pages/MessagesPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const WorkerProfileSetup = lazy(() => import("./pages/WorkerProfileSetup"));
+const RoleSelectionPage = lazy(() => import("./pages/RoleSelectionPage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const AIChatbotPage = lazy(() => import("./pages/AIChatbotPage"));
+const SplashScreen = lazy(() => import("./pages/SplashScreen"));
 
 const queryClient = new QueryClient();
 
@@ -51,13 +51,21 @@ const AuthRoute = ({ children }) => {
   return <>{children}</>;
 };
 
+const RouteFallback = () => (
+  <div className="min-h-svh flex items-center justify-center bg-background">
+    <Loader2 className="animate-spin text-primary" size={32} />
+  </div>
+);
+
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
 
   if (showSplash) {
     return (
       <ThemeProvider>
-        <SplashScreen onFinish={() => setShowSplash(false)} />
+        <Suspense fallback={<RouteFallback />}>
+          <SplashScreen onFinish={() => setShowSplash(false)} />
+        </Suspense>
       </ThemeProvider>
     );
   }
@@ -69,23 +77,25 @@ const App = () => {
           <Sonner position="top-center" />
           <AuthProvider>
             <BrowserRouter>
-              <Routes>
-                <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                  <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
 
-                <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-                <Route path="/jobs" element={<ProtectedRoute><JobFeedPage /></ProtectedRoute>} />
-                <Route path="/jobs/:id" element={<ProtectedRoute><JobDetailPage /></ProtectedRoute>} />
-                <Route path="/post-job" element={<ProtectedRoute><PostJobPage /></ProtectedRoute>} />
-                <Route path="/post-availability" element={<ProtectedRoute><PostAvailabilityPage /></ProtectedRoute>} />
-                <Route path="/chat/:jobId/:workerId" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
-                <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
-                {<Route path="/assistant" element={<ProtectedRoute><AIChatbotPage /></ProtectedRoute>} /> }
-                <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-                <Route path="/profile/setup" element={<ProtectedRoute><WorkerProfileSetup /></ProtectedRoute>} />
-                <Route path="/role-selection" element={<ProtectedRoute><RoleSelectionPage /></ProtectedRoute>} />
+                  <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+                  <Route path="/jobs" element={<ProtectedRoute><JobFeedPage /></ProtectedRoute>} />
+                  <Route path="/jobs/:id" element={<ProtectedRoute><JobDetailPage /></ProtectedRoute>} />
+                  <Route path="/post-job" element={<ProtectedRoute><PostJobPage /></ProtectedRoute>} />
+                  <Route path="/post-availability" element={<ProtectedRoute><PostAvailabilityPage /></ProtectedRoute>} />
+                  <Route path="/chat/:jobId/:workerId" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+                  <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+                  <Route path="/assistant" element={<ProtectedRoute><AIChatbotPage /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                  <Route path="/profile/setup" element={<ProtectedRoute><WorkerProfileSetup /></ProtectedRoute>} />
+                  <Route path="/role-selection" element={<ProtectedRoute><RoleSelectionPage /></ProtectedRoute>} />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Suspense>
             </BrowserRouter>
           </AuthProvider>
         </TooltipProvider>
