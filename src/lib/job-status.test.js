@@ -4,8 +4,8 @@ import { isActiveJobStatus, isCompletedJobStatus } from "./job-status";
 describe("job status helpers", () => {
   it("treats active statuses as active", () => {
     expect(isActiveJobStatus("open")).toBe(true);
-    expect(isActiveJobStatus("in_progress")).toBe(true);
     expect(isActiveJobStatus("assigned")).toBe(true);
+    expect(isActiveJobStatus("in_progress")).toBe(true);
     expect(isActiveJobStatus("completed")).toBe(false);
   });
 

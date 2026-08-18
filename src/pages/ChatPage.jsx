@@ -63,7 +63,9 @@ const ChatPage = () => {
 
       if (job) {
         const targetId = user.id === job.hirer_id ? workerId : job.hirer_id;
-        setReceiverId(targetId);
+        if (targetId) {
+          setReceiverId(targetId);
+        }
 
         const { data: otherProfile } = await supabase
           .from("profiles")

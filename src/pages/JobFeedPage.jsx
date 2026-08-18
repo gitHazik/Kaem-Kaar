@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +27,13 @@ const MyApplications = ({ userId }) => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetch = async () => {
+  const fetch = useCallback(async () => {
+    if (!userId) {
+      setApplications([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const { data, error } = await supabase
       .from("applications")
@@ -49,11 +55,11 @@ const MyApplications = ({ userId }) => {
 
     if (!error) setApplications(data || []);
     setLoading(false);
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetch();
-  }, [userId]);
+  }, [fetch]);
 
   // --- NEW UNDO LOGIC ---
   const handleWithdraw = async (appId) => {
@@ -132,7 +138,13 @@ const JobFeedPage = () => {
     return tab === "completed" ? isCompletedJobStatus(job.status) : isActiveJobStatus(job.status);
   });
 
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
+    if (!profile?.id && isHirer) {
+      setJobs([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     let query = supabase
       .from("jobs")
@@ -157,7 +169,7 @@ const JobFeedPage = () => {
       setAppliedJobIds(new Set(apps?.map((a) => a.job_id) || []));
     }
     setLoading(false);
-  };
+  }, [isHirer, profile?.id, user]);
 
   /* FUTURE_FEATURE: Worker Availability Fetch
   const fetchWorkers = async () => {
@@ -172,25 +184,21 @@ const JobFeedPage = () => {
   */
 
   useEffect(() => {
-    if (profile?.role) {
-      if (profile.role === "hirer" && tab === "browse") setTab("jobs");
-      if (profile.role !== "hirer" && tab === "jobs") setTab("browse");
-    }
-  }, [profile?.role]);
-
-  useEffect(() => {
     if (!profile?.role) return;
     if (profile.role === "hirer" && tab === "browse") {
       setTab("jobs");
-    } else if (profile.role !== "hirer" && tab === "jobs") {
+      return;
+    }
+    if (profile.role !== "hirer" && tab === "jobs") {
       setTab("browse");
     }
-  }, [profile?.role]);
+  }, [profile?.role, tab]);
 
   useEffect(() => {
-    if (tab === "browse" || tab === "jobs" || tab === "completed") fetchJobs();
-    // if (tab === "workers") fetchWorkers(); // FUTURE_FEATURE
-  }, [tab, profile?.role]);
+    if (tab === "browse" || tab === "jobs" || tab === "completed") {
+      fetchJobs();
+    }
+  }, [tab, fetchJobs]);
 
   const handleApply = async (jobId) => {
     if (!user) return;
