@@ -221,7 +221,7 @@ const PostJobPage = () => {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="h-14 rounded-xl"
+              className="h-14 rounded-xl [&::-webkit-calendar-picker-indicator]:invert"
             />
           </div>
 
