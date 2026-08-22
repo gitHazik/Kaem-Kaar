@@ -35,7 +35,7 @@ const WorkersPage = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-
+  // Kept in state so existing filtering logic is untouched — just no longer exposed as a UI control.
   const [minimumRating, setMinimumRating] = useState("0");
 
   useEffect(() => {
@@ -101,7 +101,7 @@ const WorkersPage = () => {
           <h1 className="text-2xl font-semibold tracking-tight">Find the right hands.</h1>
         </section>
 
-
+        {/* Small compact search bar */}
         <div className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-2">
           <Search size={16} className="text-muted-foreground shrink-0" />
           <input
@@ -113,7 +113,7 @@ const WorkersPage = () => {
           {searchQuery && <X size={16} className="text-muted-foreground cursor-pointer shrink-0" onClick={() => setSearchQuery("")} />}
         </div>
 
-
+        {/* Category slider (replaces dropdown) */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
           {categoryPills.map((category) => {
             const isActive = activeCategory === category.id;
@@ -138,7 +138,7 @@ const WorkersPage = () => {
         ) : filteredWorkers.length > 0 ? (
           <div className="space-y-3">
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{filteredWorkers.length} available profiles</p>
-
+            {/* 2-column square-ish grid of big cards */}
             <div className="grid grid-cols-2 gap-3">
               {filteredWorkers.map((worker) => (
                 <WorkerCard
