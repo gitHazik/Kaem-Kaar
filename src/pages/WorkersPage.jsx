@@ -97,22 +97,21 @@ const WorkersPage = () => {
     <AppShell header={<h2 className="font-bold text-foreground">Find Workers</h2>}>
       <div className="px-5 py-6 space-y-4">
         <section>
-          <p className="text-[10px] font-black uppercase tracking-widest text-primary">Verified local talent</p>
-          <h1 className="text-3xl font-black tracking-tight mt-1">Find the right hands.</h1>
-          <p className="text-sm text-muted-foreground mt-2">Browse workers by skill, location, and daily rate.</p>
+          <p className="text-[10px] font-medium uppercase tracking-widest text-primary/80">Verified local talent</p>
+          <h1 className="text-2xl font-semibold tracking-tight mt-1">Find the right hands.</h1>
+          <p className="text-sm text-muted-foreground/80 mt-1.5 font-normal">Browse workers by skill, location, and daily rate.</p>
         </section>
 
         <div className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-2">
           <Search size={16} className="text-muted-foreground shrink-0" />
           <input
-            className="bg-transparent border-none outline-none text-xs font-bold text-foreground w-full placeholder:text-muted-foreground"
+            className="bg-transparent border-none outline-none text-xs font-normal text-foreground w-full placeholder:text-muted-foreground"
             placeholder="Search name, skill, or location"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
           />
           {searchQuery && <X size={16} className="text-muted-foreground cursor-pointer shrink-0" onClick={() => setSearchQuery("")} />}
         </div>
-
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
           {categoryPills.map((category) => {
             const isActive = activeCategory === category.id;
@@ -120,7 +119,7 @@ const WorkersPage = () => {
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
-                className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold border transition-colors ${
+                className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium border transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-card text-muted-foreground border-border"
