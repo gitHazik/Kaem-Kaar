@@ -35,6 +35,7 @@ const WorkersPage = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+
   const [minimumRating, setMinimumRating] = useState("0");
 
   useEffect(() => {
@@ -97,10 +98,9 @@ const WorkersPage = () => {
     <AppShell header={<h2 className="font-bold text-foreground">Find Workers</h2>}>
       <div className="px-5 py-6 space-y-4">
         <section>
-          <p className="text-[10px] font-medium uppercase tracking-widest text-primary/80">Verified local talent</p>
-          <h1 className="text-2xl font-semibold tracking-tight mt-1">Find the right hands.</h1>
-          <p className="text-sm text-muted-foreground/80 mt-1.5 font-normal">Browse workers by skill, location, and daily rate.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Find the right hands.</h1>
         </section>
+
 
         <div className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-2">
           <Search size={16} className="text-muted-foreground shrink-0" />
@@ -112,6 +112,8 @@ const WorkersPage = () => {
           />
           {searchQuery && <X size={16} className="text-muted-foreground cursor-pointer shrink-0" onClick={() => setSearchQuery("")} />}
         </div>
+
+
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
           {categoryPills.map((category) => {
             const isActive = activeCategory === category.id;
@@ -136,6 +138,7 @@ const WorkersPage = () => {
         ) : filteredWorkers.length > 0 ? (
           <div className="space-y-3">
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{filteredWorkers.length} available profiles</p>
+
             <div className="grid grid-cols-2 gap-3">
               {filteredWorkers.map((worker) => (
                 <WorkerCard
