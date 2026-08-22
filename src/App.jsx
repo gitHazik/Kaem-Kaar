@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Loader2 } from "lucide-react";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
+const WorkersPage = lazy(() => import("./pages/WorkersPage"));
 const JobFeedPage = lazy(() => import("./pages/JobFeedPage"));
 const PostJobPage = lazy(() => import("./pages/PostJobPage"));
 const PostAvailabilityPage = lazy(() => import("./pages/PostAvailabilityPage"));
@@ -82,11 +83,13 @@ const App = () => {
                   <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
 
                   <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+                  <Route path="/workers" element={<ProtectedRoute><WorkersPage /></ProtectedRoute>} />
                   <Route path="/jobs" element={<ProtectedRoute><JobFeedPage /></ProtectedRoute>} />
                   <Route path="/jobs/:id" element={<ProtectedRoute><JobDetailPage /></ProtectedRoute>} />
                   <Route path="/post-job" element={<ProtectedRoute><PostJobPage /></ProtectedRoute>} />
                   <Route path="/post-availability" element={<ProtectedRoute><PostAvailabilityPage /></ProtectedRoute>} />
                   <Route path="/chat/:jobId/:workerId" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+                  <Route path="/chat/direct/:workerId" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
                   <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
                   <Route path="/assistant" element={<ProtectedRoute><AIChatbotPage /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
