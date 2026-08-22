@@ -1,5 +1,4 @@
 import { MapPin, Calendar, ArrowRight, Star, Wrench } from "lucide-react";
-
 const WorkerCard = ({
   name,
   skill,
@@ -28,11 +27,11 @@ const WorkerCard = ({
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-1">
             <h3 className="text-base font-bold text-foreground truncate">
               {name}
             </h3>
-            <span className="bg-success/10 text-success text-sm font-extrabold px-3 py-1.5 rounded-xl shrink-0 ml-2">
+            <span className="bg-success/10 text-success text-[10px] font-bold px-2 py-1 rounded-lg shrink-0">
               ₹{pay}/day
             </span>
           </div>
@@ -47,7 +46,6 @@ const WorkerCard = ({
           </div>
         </div>
       </div>
-
       <div className="flex items-center gap-3 text-xs text-muted-foreground font-bold uppercase tracking-wider">
         <span className="flex items-center gap-1.5 bg-muted px-2.5 py-1 rounded-lg">
           <MapPin size={12} /> {location}
@@ -58,18 +56,16 @@ const WorkerCard = ({
           </span>
         )}
       </div>
-
       {onContact && (
         <button
           onClick={onContact}
-          className="mt-4 w-full h-12 bg-primary text-primary-foreground font-bold rounded-xl active:scale-[0.97] transition-all text-sm flex items-center justify-center gap-2"
+          className="mt-4 w-full h-9 bg-primary text-primary-foreground font-bold rounded-xl active:scale-[0.97] transition-all text-xs flex items-center justify-center gap-1.5"
         >
           Contact Worker
-          <ArrowRight size={16} />
+          <ArrowRight size={14} />
         </button>
       )}
     </div>
   );
 };
-
 export default WorkerCard;
