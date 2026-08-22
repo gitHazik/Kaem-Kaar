@@ -100,7 +100,7 @@ CREATE POLICY "Hirers can delete applications for their own jobs"
 -- ============================================================
 CREATE TABLE public.messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE NOT NULL,
+  job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE,
   sender_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
@@ -112,6 +112,7 @@ ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Chat participants can view messages"
   ON public.messages FOR SELECT USING (
     auth.uid() = sender_id OR
+    auth.uid() = receiver_id OR
     auth.uid() IN (SELECT hirer_id FROM public.jobs WHERE id = job_id) OR
     auth.uid() IN (SELECT worker_id FROM public.applications WHERE job_id = messages.job_id)
   );
@@ -124,7 +125,40 @@ CREATE POLICY "Users can delete messages they are part of"
     auth.uid() = sender_id OR auth.uid() = receiver_id
   );
 
--- 5. WORKER AVAILABILITY (future feature — by Hazik, do not remove)
+
+-- 5. WORKER REVIEWS
+-- ============================================================
+CREATE TABLE public.worker_reviews (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  hirer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  worker_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  category TEXT NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+ALTER TABLE public.worker_reviews ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view worker reviews"
+  ON public.worker_reviews FOR SELECT USING (true);
+
+CREATE POLICY "Hirers can review their completed jobs"
+  ON public.worker_reviews FOR INSERT WITH CHECK (
+    auth.uid() = hirer_id AND
+    EXISTS (
+      SELECT 1 FROM public.jobs
+      WHERE jobs.id = job_id
+        AND jobs.hirer_id = auth.uid()
+        AND jobs.status = 'completed'
+        AND jobs.assigned_worker_id = worker_id
+    )
+  );
+
+CREATE POLICY "Hirers can update their reviews"
+  ON public.worker_reviews FOR UPDATE USING (auth.uid() = hirer_id);
+
+-- 6. WORKER AVAILABILITY (future feature — by Hazik, do not remove)
 -- ============================================================
 CREATE TABLE public.worker_availability (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -153,7 +187,7 @@ CREATE POLICY "Workers can delete own availability"
   ON public.worker_availability FOR DELETE USING (auth.uid() = worker_id);
 
 
--- 8. STORAGE
+-- 9. STORAGE
 -- ============================================================
 INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true);
 
@@ -173,7 +207,7 @@ CREATE POLICY "Users can update own avatar"
   );
 
 
--- 9. REALTIME
+-- 10. REALTIME
 -- ============================================================
 ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.jobs;

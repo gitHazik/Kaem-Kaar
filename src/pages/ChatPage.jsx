@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 const ChatPage = () => {
   const { jobId, workerId } = useParams();
+  const isDirectChat = !jobId;
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -23,18 +24,14 @@ const ChatPage = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (!user?.id || !jobId) return;
+    if (!user?.id) return;
 
-    supabase
-      .from("messages")
-      .update({ is_read: true })
-      .eq("job_id", jobId)
-      .eq("receiver_id", user.id)
-      .eq("is_read", false)
-      .then(({ error }) => {
-        if (error) console.error(error);
-      });
-  }, [jobId, user?.id]);
+    let query = supabase.from("messages").update({ is_read: true }).eq("receiver_id", user.id).eq("is_read", false);
+    query = isDirectChat ? query.is("job_id", null) : query.eq("job_id", jobId);
+    query.then(({ error }) => {
+      if (error) console.error(error);
+    });
+  }, [isDirectChat, jobId, user?.id]);
 
   // Handle message deletion logic
   const handleDeleteMessage = async (messageId) => {
@@ -55,14 +52,12 @@ const ChatPage = () => {
     const fetchData = async () => {
       if (!user) return;
 
-      const { data: job } = await supabase
-        .from("jobs")
-        .select("title, hirer_id")
-        .eq("id", jobId)
-        .maybeSingle();
+      const { data: job } = isDirectChat
+        ? { data: null }
+        : await supabase.from("jobs").select("title, hirer_id").eq("id", jobId).maybeSingle();
 
-      if (job) {
-        const targetId = user.id === job.hirer_id ? workerId : job.hirer_id;
+      if (isDirectChat || job) {
+        const targetId = isDirectChat ? workerId : user.id === job.hirer_id ? workerId : job.hirer_id;
         if (targetId) {
           setReceiverId(targetId);
         }
@@ -73,12 +68,11 @@ const ChatPage = () => {
           .eq("id", targetId)
           .maybeSingle();
 
-        setChatTitle(otherProfile?.full_name || job.title);
+        setChatTitle(otherProfile?.full_name || job?.title || "Chat");
 
-        const { data } = await supabase
-          .from("messages")
-          .select("*")
-          .eq("job_id", jobId)
+        let messageQuery = supabase.from("messages").select("*");
+        messageQuery = isDirectChat ? messageQuery.is("job_id", null) : messageQuery.eq("job_id", jobId);
+        const { data } = await messageQuery
           .or(`and(sender_id.eq.${user.id},receiver_id.eq.${targetId}),and(sender_id.eq.${targetId},receiver_id.eq.${user.id})`)
           .order("created_at", { ascending: true });
 
@@ -89,17 +83,18 @@ const ChatPage = () => {
     fetchData();
 
     const channel = supabase
-      .channel(`chat-${jobId}-${workerId}`)
+      .channel(`chat-${jobId || "direct"}-${workerId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "messages", filter: `job_id=eq.${jobId}` },
+        { event: "*", schema: "public", table: "messages" },
         (payload) => {
           if (payload.eventType === "INSERT") {
             const msg = payload.new;
             const isMe = msg.sender_id === user.id;
             const isToMe = msg.receiver_id === user.id;
             const isRelated = msg.sender_id === workerId || msg.receiver_id === workerId;
-            if ((isMe || isToMe) && isRelated) {
+            const isSameChat = isDirectChat ? msg.job_id === null : msg.job_id === jobId;
+            if ((isMe || isToMe) && isRelated && isSameChat) {
               setMessages((prev) => [...prev, msg]);
             }
           } else if (payload.eventType === "DELETE") {
@@ -112,13 +107,13 @@ const ChatPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [jobId, workerId, user]);
+  }, [jobId, workerId, user, isDirectChat]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !user || sending || !receiverId) return;
     setSending(true);
     const { error } = await supabase.from("messages").insert({
-      job_id: jobId,
+      job_id: jobId || null,
       sender_id: user.id,
       receiver_id: receiverId,
       content: newMessage.trim(),
@@ -133,7 +128,7 @@ const ChatPage = () => {
         <button onClick={() => navigate(-1)} className="press p-1"><ArrowLeft size={20} /></button>
         <div>
           <h2 className="font-bold text-foreground truncate text-sm leading-none">{chatTitle}</h2>
-          <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-wider">Job Discussion</p>
+          <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-wider">{isDirectChat ? "Direct message" : "Job Discussion"}</p>
         </div>
       </header>
 

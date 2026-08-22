@@ -14,12 +14,14 @@ import {
   Loader2,
   Send,
   Undo2,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { CATEGORY_OPTIONS, normalizeCategory } from "@/lib/categories";
 
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -64,6 +66,21 @@ const JobLocationMap = ({ lat, lng, title }) => (
   </div>
 );
 
+const getReviewCategory = (jobCategory, skill) => {
+  const normalizedJobCategory = normalizeCategory(jobCategory);
+  if (CATEGORY_OPTIONS.some((category) => category.id === normalizedJobCategory)) return normalizedJobCategory;
+  const normalizedSkill = String(skill || "").toLowerCase();
+  const skillCategory = {
+    repair: ["plumber", "electrician", "painter", "carpenter", "mason", "gardener"],
+    homehelp: ["cleaner", "helper"],
+    cooking: ["cook"],
+    delivery: ["driver"],
+    education: ["tutor", "teacher"],
+    labor: ["labor", "helper", "mason"],
+  };
+  return Object.entries(skillCategory).find(([, skills]) => skills.some((term) => normalizedSkill.includes(term)))?.[0] || "other";
+};
+
 const JobDetailPage = () => {
   const { id } = useParams();
   const { user, profile } = useAuth();
@@ -75,6 +92,10 @@ const JobDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [acceptedWorkerId, setAcceptedWorkerId] = useState(null);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewCategory, setReviewCategory] = useState("");
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   const isHirer = job?.hirer_id === user?.id;
 
@@ -91,6 +112,17 @@ const JobDetailPage = () => {
       if (jobError) throw jobError;
       setJob(jobData);
       setAcceptedWorkerId(null);
+
+      const { data: review } = await supabase
+        .from("worker_reviews")
+        .select("rating, category")
+        .eq("job_id", id)
+        .maybeSingle();
+      setReviewSubmitted(Boolean(review));
+      if (review) {
+        setReviewRating(review.rating);
+        setReviewCategory(review.category);
+      }
 
       if (jobData?.hirer_id === user?.id) {
         const { data: appData } = await supabase
@@ -195,7 +227,7 @@ const JobDetailPage = () => {
 
       const { data: updatedJob, error: jobError } = await supabase
         .from("jobs")
-        .update({ status: "in_progress" })
+        .update({ status: "in_progress", assigned_worker_id: workerId })
         .eq("id", id)
         .select()
         .single();
@@ -236,11 +268,43 @@ const JobDetailPage = () => {
       const { data: updatedJob } = await supabase.from("jobs").update({ status: newStatus }).eq("id", id).select().single();
       setJob(updatedJob);
       toast.success("Job status updated.");
+      if (newStatus === "completed" && acceptedWorkerId && !reviewSubmitted) {
+        const worker = applicants.find((app) => app.worker_id === acceptedWorkerId);
+        setReviewCategory(getReviewCategory(updatedJob.category, worker?.profiles?.skills?.[0]));
+        setReviewRating(0);
+        setShowReviewDialog(true);
+      }
     } catch (error) {
       toast.error("Update failed");
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewRating || !reviewCategory || !acceptedWorkerId) {
+      toast.error("Choose a category and rating first");
+      return;
+    }
+
+    setActionLoading(true);
+    const { error } = await supabase.from("worker_reviews").insert({
+      job_id: job.id,
+      hirer_id: user.id,
+      worker_id: acceptedWorkerId,
+      category: reviewCategory,
+      rating: reviewRating,
+    });
+    setActionLoading(false);
+
+    if (error) {
+      toast.error(error.code === "23505" ? "This job has already been reviewed" : error.message);
+      return;
+    }
+
+    setReviewSubmitted(true);
+    setShowReviewDialog(false);
+    toast.success("Worker rating saved");
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
@@ -311,6 +375,15 @@ const JobDetailPage = () => {
                 </div>
               </div>
             )}
+            {job?.status === "completed" && acceptedWorkerId && (
+              <div className="bg-primary/5 border border-primary/20 p-5 rounded-2xl flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-bold text-sm">{reviewSubmitted ? "Worker rated" : "Rate this worker"}</p>
+                  {reviewSubmitted && <p className="text-xs text-muted-foreground mt-1">{reviewRating}/5 stars</p>}
+                </div>
+                {!reviewSubmitted && <Button size="sm" onClick={() => setShowReviewDialog(true)}><Star size={15} /> Rate worker</Button>}
+              </div>
+            )}
           </div>
         )}
 
@@ -342,6 +415,31 @@ const JobDetailPage = () => {
           </div>
         )}
       </div>
+      {showReviewDialog && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-end justify-center p-4">
+          <div className="w-full max-w-[480px] bg-background rounded-3xl p-6 space-y-5">
+            <div>
+              <h2 className="text-xl font-black">Rate the worker</h2>
+              <p className="text-sm text-muted-foreground mt-1">Your rating helps other hirers choose confidently.</p>
+            </div>
+            <select value={reviewCategory} onChange={(event) => setReviewCategory(event.target.value)} className="w-full h-12 rounded-xl border border-border bg-card px-4 text-sm font-bold outline-none">
+              <option value="">Choose category</option>
+              {CATEGORY_OPTIONS.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+            </select>
+            <div className="flex justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((rating) => (
+                <button key={rating} onClick={() => setReviewRating(rating)} aria-label={`${rating} stars`} className="p-1">
+                  <Star size={32} fill={rating <= reviewRating ? "currentColor" : "none"} className={rating <= reviewRating ? "text-amber-500" : "text-muted-foreground"} />
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowReviewDialog(false)}>Later</Button>
+              <Button className="flex-1" onClick={handleSubmitReview} disabled={actionLoading || !reviewRating || !reviewCategory}>Save rating</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 };

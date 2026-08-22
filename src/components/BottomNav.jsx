@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useState } from "react";
-import { Home, Briefcase, MessageCircle, User, Sparkles } from "lucide-react";
+import { Home, Briefcase, MessageCircle, User, Sparkles, Users } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,8 +16,11 @@ const navItems = [
 const BottomNav = forwardRef((_, ref) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const visibleNavItems = profile?.role === "hirer"
+    ? [navItems[0], { icon: Users, label: "Workers", path: "/workers" }, ...navItems.slice(1)]
+    : navItems;
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -76,7 +79,7 @@ const BottomNav = forwardRef((_, ref) => {
       className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border pb-[env(safe-area-inset-bottom)]"
     >
       <div className="max-w-[480px] mx-auto flex h-16">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <button
