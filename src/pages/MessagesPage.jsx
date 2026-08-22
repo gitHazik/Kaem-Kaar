@@ -49,18 +49,18 @@ const MessagesPage = () => {
         const otherId = isITheSender ? msg.receiver_id : msg.sender_id;
         const otherProfile = isITheSender ? msg.receiver : msg.sender;
 
-        if (!otherId || !msg.job_id || otherId === "null") {
+        if (!otherId || otherId === "null") {
           continue;
         }
 
-        const threadKey = `${msg.job_id}_${otherId}`;
+        const threadKey = `${msg.job_id || "direct"}_${otherId}`;
 
         if (!seen.has(threadKey)) {
           seen.set(threadKey, {
             job_id: msg.job_id,
             other_user_id: otherId,
             other_user_name: otherProfile?.full_name || "User",
-            job_title: msg.jobs?.title || "Job Discussion",
+            job_title: msg.jobs?.title || "Direct message",
             last_message: msg.content,
             last_at: msg.created_at,
           });
@@ -78,11 +78,14 @@ const MessagesPage = () => {
   const handleDeleteThread = async (e, jobId, otherId) => {
     e.stopPropagation();
 
-    const { error } = await supabase
-      .from("messages")
-      .delete()
-      .eq("job_id", jobId)
-      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${user.id})`);
+    let deleteQuery = supabase.from("messages").delete();
+    deleteQuery = jobId
+      ? deleteQuery.eq("job_id", jobId)
+      : deleteQuery.is("job_id", null);
+
+    const { error } = await deleteQuery.or(
+      `and(sender_id.eq.${user.id},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${user.id})`,
+    );
 
     if (error) {
       toast.error("Database error: " + error.message);
@@ -117,7 +120,7 @@ const MessagesPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: i * 0.05 }}
-                onClick={() => navigate(`/chat/${t.job_id}/${t.other_user_id}`)}
+                onClick={() => navigate(t.job_id ? `/chat/${t.job_id}/${t.other_user_id}` : `/chat/direct/${t.other_user_id}`)}
                 className="group relative w-full p-4 border border-border rounded-2xl bg-card text-left press hover:border-primary/40 transition-all flex items-center gap-3"
               >
                 {/* User Avatar Initials */}
