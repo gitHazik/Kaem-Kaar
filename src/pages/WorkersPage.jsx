@@ -35,6 +35,7 @@ const WorkersPage = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  // Kept in state so existing filtering logic is untouched — just no longer exposed as a UI control.
   const [minimumRating, setMinimumRating] = useState("0");
 
   useEffect(() => {
@@ -91,51 +92,45 @@ const WorkersPage = () => {
     }).sort((first, second) => second.averageRating - first.averageRating);
   }, [activeCategory, minimumRating, searchQuery, workers]);
 
+  const categoryPills = [{ id: "all", label: "All" }, ...CATEGORY_OPTIONS];
+
   return (
     <AppShell header={<h2 className="font-bold text-foreground">Find Workers</h2>}>
-      <div className="px-5 py-6 space-y-6">
+      <div className="px-5 py-6 space-y-4">
         <section>
-          <p className="text-[10px] font-black uppercase tracking-widest text-primary">Verified local talent</p>
-          <h1 className="text-3xl font-black tracking-tight mt-1">Find the right hands.</h1>
-          <p className="text-sm text-muted-foreground mt-2">Browse workers by skill, location, and daily rate.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Find the right hands.</h1>
         </section>
 
-        <div className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3">
-          <Search size={18} className="text-muted-foreground shrink-0" />
+        {/* Small compact search bar */}
+        <div className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-2">
+          <Search size={16} className="text-muted-foreground shrink-0" />
           <input
-            className="bg-transparent border-none outline-none text-sm font-bold text-foreground w-full placeholder:text-muted-foreground"
+            className="bg-transparent border-none outline-none text-xs font-normal text-foreground w-full placeholder:text-muted-foreground"
             placeholder="Search name, skill, or location"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
           />
-          {searchQuery && <X size={18} className="text-muted-foreground cursor-pointer" onClick={() => setSearchQuery("")} />}
+          {searchQuery && <X size={16} className="text-muted-foreground cursor-pointer shrink-0" onClick={() => setSearchQuery("")} />}
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="worker-rating" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Minimum rating</label>
-          <select id="worker-rating" value={minimumRating} onChange={(event) => setMinimumRating(event.target.value)} className="w-full h-12 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground outline-none focus:ring-2 focus:ring-primary/20">
-            <option value="0">Any rating</option>
-            {[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} stars &amp; up</option>)}
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="worker-category" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            Category
-          </label>
-          <select
-            id="worker-category"
-            value={activeCategory}
-            onChange={(event) => setActiveCategory(event.target.value)}
-            className="w-full h-12 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <option value="all">All workers</option>
-            {CATEGORY_OPTIONS.map((category) => (
-              <option key={category.id} value={category.id}>
+        {/* Category slider (replaces dropdown) */}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
+          {categoryPills.map((category) => {
+            const isActive = activeCategory === category.id;
+            return (
+              <button
+                key={category.id}
+                onClick={() => setActiveCategory(category.id)}
+                className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium border transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border"
+                }`}
+              >
                 {category.label}
-              </option>
-            ))}
-          </select>
+              </button>
+            );
+          })}
         </div>
 
         {loading ? (
@@ -143,19 +138,22 @@ const WorkersPage = () => {
         ) : filteredWorkers.length > 0 ? (
           <div className="space-y-3">
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{filteredWorkers.length} available profiles</p>
-            {filteredWorkers.map((worker) => (
-              <WorkerCard
-                key={worker.id}
-                name={worker.full_name || "Unnamed worker"}
-                skill={worker.skills?.[0] || getCategoryLabel(activeCategory)}
-                location={worker.location_name || "Location not listed"}
-                pay={worker.expected_pay_per_day || "Ask"}
-                avatarUrl={worker.avatar_url}
-                rating={worker.averageRating}
-                ratingCount={worker.ratingCount}
-                onContact={() => navigate(`/chat/direct/${worker.id}`)}
-              />
-            ))}
+            {/* 2-column square-ish grid of big cards */}
+            <div className="grid grid-cols-2 gap-3">
+              {filteredWorkers.map((worker) => (
+                <WorkerCard
+                  key={worker.id}
+                  name={worker.full_name || "Unnamed worker"}
+                  skill={worker.skills?.[0] || getCategoryLabel(activeCategory)}
+                  location={worker.location_name || "Location not listed"}
+                  pay={worker.expected_pay_per_day || "Ask"}
+                  avatarUrl={worker.avatar_url}
+                  rating={worker.averageRating}
+                  ratingCount={worker.ratingCount}
+                  onContact={() => navigate(`/chat/direct/${worker.id}`)}
+                />
+              ))}
+            </div>
           </div>
         ) : (
           <div className="text-center py-16 border-2 border-dashed border-border rounded-3xl">
