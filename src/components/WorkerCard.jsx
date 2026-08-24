@@ -77,6 +77,3 @@ const WorkerCard = ({
   );
 };
 export default WorkerCard;
-
-
-
