@@ -40,6 +40,17 @@ export const AuthProvider = ({ children }) => {
     setProfileLoaded(false);
   };
 
+  const signInWithProvider = async (provider) => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/`,
+      },
+    });
+
+    if (error) throw error;
+  };
+
   const setRole = async (role) => {
     if (!user?.id) return;
     const { error } = await supabase
@@ -82,7 +93,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, session, loading, profileLoaded, signOut, refreshProfile, setRole }}>
+    <AuthContext.Provider value={{ user, profile, session, loading, profileLoaded, signOut, signInWithProvider, refreshProfile, setRole }}>
       {children}
     </AuthContext.Provider>
   );
