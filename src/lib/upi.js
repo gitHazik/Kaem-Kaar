@@ -18,5 +18,5 @@ export const buildUpiIntentLink = ({ payeeVpa, payeeName, amount, note, txnRef }
 export const generateTxnRef = () =>
   `KK${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
-export const MERCHANT_VPA = import.meta.env.VITE_UPI_VPA || "kaemkaar@upi";
+export const MERCHANT_VPA = import.meta.env.VITE_UPI_VPA || "7051477357@fam";
 export const MERCHANT_NAME = "Kaem Kaar";
