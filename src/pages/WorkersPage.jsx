@@ -29,8 +29,6 @@ const matchesCategory = (worker, category) => {
   return (worker.skills || []).some((skill) => !Object.values(SKILL_CATEGORIES).flat().some((term) => String(skill).toLowerCase().includes(term)));
 };
 
-// Marker used to tell "quick booked" jobs apart from normally-posted jobs when listing "My Bookings".
-// For production, swap this for a real `source` column on `jobs` via a migration instead of a title prefix.
 const BOOKING_TITLE_PREFIX = "⚡ Direct Booking:";
 const BOOKING_FEE = 10;
 
@@ -130,9 +128,6 @@ const WorkersPage = () => {
 
   const categoryPills = [{ id: "all", label: "All" }, ...CATEGORY_OPTIONS];
 
-  // Called once the user confirms the booking-fee payment in PaymentSheet.
-  // Creates a job + an already-accepted application for this worker, then drops the hirer
-  // straight into the existing JobDetailPage (complete / cancel / rate flow already built).
   const handleBookingConfirmed = async () => {
     const worker = bookingWorker;
     if (!worker || !user) return;
@@ -175,27 +170,6 @@ const WorkersPage = () => {
     navigate(`/jobs/${job.id}`);
   };
 
-  const categoryPillsBar = (
-    <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
-      {categoryPills.map((category) => {
-        const isActive = activeCategory === category.id;
-        return (
-          <button
-            key={category.id}
-            onClick={() => setActiveCategory(category.id)}
-            className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium border transition-colors ${
-              isActive
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card text-muted-foreground border-border"
-            }`}
-          >
-            {category.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-
   return (
     <AppShell header={<h2 className="font-bold text-foreground">Find Workers</h2>}>
       <div className="px-5 py-6 space-y-4">
@@ -231,7 +205,24 @@ const WorkersPage = () => {
               {searchQuery && <X size={16} className="text-muted-foreground cursor-pointer shrink-0" onClick={() => setSearchQuery("")} />}
             </div>
 
-            {categoryPillsBar}
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5" style={{ scrollbarWidth: "none" }}>
+              {categoryPills.map((category) => {
+                const isActive = activeCategory === category.id;
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => setActiveCategory(category.id)}
+                    className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium border transition-colors ${
+                      isActive
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card text-muted-foreground border-border"
+                    }`}
+                  >
+                    {category.label}
+                  </button>
+                );
+              })}
+            </div>
 
             {loading ? (
               <div className="flex justify-center py-16"><Loader2 className="animate-spin text-primary" size={28} /></div>
