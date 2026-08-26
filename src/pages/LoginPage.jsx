@@ -10,7 +10,6 @@ const LoginPage = () => {
 
   const handleProviderLogin = async (provider) => {
     setLoadingProvider(provider);
-
     try {
       await signInWithProvider(provider);
     } catch (error) {
@@ -22,30 +21,33 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-black tracking-tighter italic text-primary">
-            KAEM KAAR
+      <div className="w-full max-w-sm space-y-10">
+        <div className="text-center space-y-1.5">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Kaem Kaar
           </h1>
-          <p className="text-muted-foreground text-sm font-medium">
-            Welcome back, chief!
+          <p className="text-muted-foreground text-sm">
+            Sign in to continue
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Button
             type="button"
             disabled={Boolean(loadingProvider)}
             onClick={() => handleProviderLogin("google")}
             variant="outline"
-            className="w-full h-14 rounded-2xl border-2 border-[#dadce0] bg-white !text-[#202124] shadow-sm hover:border-[#9aa0a6] hover:bg-white hover:!text-[#202124]"
+            className="w-full h-12 rounded-xl border border-border bg-card text-foreground font-medium shadow-none hover:bg-muted/50"
           >
             {loadingProvider === "google" ? (
-              <Loader2 className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : (
-              <span className="mr-3 flex h-6 w-6 items-center justify-center rounded-full border border-[#dadce0] bg-white font-sans text-lg font-bold leading-none text-[#4285F4]">
-                G
-              </span>
+              <svg width="16" height="16" viewBox="0 0 24 24" className="mr-2.5">
+                <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.3h6.47a5.54 5.54 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.55-5.17 3.55-8.66z"/>
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.93-2.91l-3.87-3c-1.08.72-2.45 1.14-4.06 1.14-3.13 0-5.78-2.11-6.73-4.96H1.28v3.09A12 12 0 0 0 12 24z"/>
+                <path fill="#FBBC05" d="M5.27 14.27a7.2 7.2 0 0 1 0-4.54v-3.1H1.28a12 12 0 0 0 0 10.73z"/>
+                <path fill="#EA4335" d="M12 4.75c1.76 0 3.35.6 4.6 1.8l3.44-3.44C17.94 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.63l3.99 3.1C6.22 6.87 8.87 4.75 12 4.75z"/>
+              </svg>
             )}
             Continue with Google
           </Button>
@@ -54,18 +56,21 @@ const LoginPage = () => {
             type="button"
             disabled={Boolean(loadingProvider)}
             onClick={() => handleProviderLogin("facebook")}
-            className="w-full h-14 rounded-2xl font-bold text-base bg-[#1877F2] hover:bg-[#166fe5] text-white"
+            variant="outline"
+            className="w-full h-12 rounded-xl border border-border bg-card text-foreground font-medium shadow-none hover:bg-muted/50"
           >
-            {loadingProvider === "facebook" ? <Loader2 className="animate-spin" /> : <Facebook size={19} className="mr-3" fill="currentColor" />}
+            {loadingProvider === "facebook" ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Facebook size={16} className="mr-2.5 text-[#1877F2]" fill="#1877F2" />
+            )}
             Continue with Facebook
           </Button>
         </div>
 
-        <div className="flex items-start gap-3 rounded-2xl bg-muted/50 p-4 text-left">
-          <ShieldCheck size={20} className="mt-0.5 shrink-0 text-primary" />
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Secure sign-in is handled by Google or Facebook. Kaem Kaar never sees or stores your password.
-          </p>
+        <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+          <ShieldCheck size={13} />
+          <span>We never see or store your password</span>
         </div>
       </div>
     </div>

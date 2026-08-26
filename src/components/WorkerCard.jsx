@@ -8,7 +8,7 @@ const WorkerCard = ({
   avatarUrl,
   rating = 0,
   ratingCount = 0,
-  onContact,
+  onContact, // now triggers the booking/payment sheet, not a direct message
 }) => {
   return (
     <div className="p-4 border border-border rounded-2xl bg-card hover:border-primary/30 transition-colors">
@@ -59,10 +59,18 @@ const WorkerCard = ({
       {onContact && (
         <button
           onClick={onContact}
-          className="mt-4 w-full h-9 bg-primary text-primary-foreground font-bold rounded-xl active:scale-[0.97] transition-all text-xs flex items-center justify-center gap-1.5"
+          className="mt-4 w-full h-11 bg-primary text-primary-foreground font-bold rounded-xl active:scale-[0.97] transition-all text-xs flex items-center justify-between px-3.5"
         >
-          Contact Worker
-          <ArrowRight size={14} />
+          <span className="flex items-center gap-1.5">
+            Book <ArrowRight size={14} />
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="text-[10px] line-through opacity-70">₹50</span>
+            <span className="text-[9px] font-black bg-white/20 px-1.5 py-0.5 rounded-md">
+              80% OFF
+            </span>
+            <span className="text-sm font-black">₹10</span>
+          </span>
         </button>
       )}
     </div>
