@@ -11,6 +11,15 @@ import {
   MERCHANT_NAME,
 } from "@/lib/upi";
 
+// PaymentSheet
+// - amount: number, the fee to collect (e.g. 10)
+// - workerName: string, shown in the note
+// - onClose: () => void
+// - onConfirmed: async () => void  — called once the user confirms they've paid.
+//   NOTE: this is a manual confirmation because there's no payment gateway wired in yet.
+//   To make this real: replace the "I've paid" step with a call to your backend, which
+//   creates a UPI collect request via a PSP (Razorpay/Cashfree) and polls/receives a
+//   webhook when the payment actually clears, then calls onConfirmed() from that result.
 const PaymentSheet = ({ amount, workerName, onClose, onConfirmed }) => {
   const [step, setStep] = useState("pay"); // "pay" | "waiting" | "confirming"
   const [upiId, setUpiId] = useState("");
@@ -29,11 +38,14 @@ const PaymentSheet = ({ amount, workerName, onClose, onConfirmed }) => {
     [amount, workerName, txnRef]
   );
 
+  // On mobile, pressing "Pay" opens the UPI app directly.
   const handlePayOnMobile = () => {
     window.location.href = upiLink;
     setStep("waiting");
   };
 
+  // On web, this mimics the "enter UPI ID, we send you a request" flow (like Amazon/Swiggy web checkout).
+  // TODO: wire this to your backend's UPI Collect Request API call instead of a client-side timer.
   const handleSendRequest = () => {
     if (!upiId.includes("@")) {
       toast.error("Enter a valid UPI ID, e.g. name@bank");
@@ -46,8 +58,11 @@ const PaymentSheet = ({ amount, workerName, onClose, onConfirmed }) => {
   const handleConfirm = async () => {
     setStep("confirming");
     try {
+      // On success the parent unmounts this sheet (it navigates to the booking).
+      // Don't touch state after that — only recover state on failure.
       await onConfirmed();
-    } finally {
+    } catch (error) {
+      toast.error(error?.message || "Something went wrong — please try again");
       setStep("waiting");
     }
   };
