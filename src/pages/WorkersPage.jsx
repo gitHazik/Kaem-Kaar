@@ -151,8 +151,8 @@ const WorkersPage = () => {
       .single();
 
     if (jobError) {
-      toast.error(jobError.message || "Could not create booking");
-      return;
+      // Throw so PaymentSheet catches it and lets the user retry instead of hanging on "confirming".
+      throw new Error(jobError.message || "Could not create booking");
     }
 
     const { error: appError } = await supabase.from("applications").insert({
@@ -162,6 +162,8 @@ const WorkersPage = () => {
     });
 
     if (appError) {
+      // The job exists but the worker isn't linked — this needs attention, but the booking
+      // record itself succeeded, so don't block navigation over it.
       toast.error("Booking created but couldn't link the worker — check Applications table");
     }
 
