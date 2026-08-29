@@ -1,85 +1,86 @@
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, X, CheckCircle2, Smartphone } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import {
-  isMobileDevice,
-  buildUpiIntentLink,
-  generateTxnRef,
-  MERCHANT_VPA,
-  MERCHANT_NAME,
-} from "@/lib/upi";
+import { supabase } from "@/integrations/supabase/client";
+import { loadRazorpayScript } from "@/lib/razorpay";
 
 // PaymentSheet
-// - amount: number, the fee to collect (e.g. 10)
-// - workerName: string, shown in the note
+// - amount: number, the booking fee (e.g. 10)
+// - workerId: the worker being booked — sent to the server, which looks up their details
+// - workerName: shown in the sheet and the Razorpay checkout description
 // - onClose: () => void
-// - onConfirmed: async () => void  — called once the user confirms they've paid.
-//   NOTE: this is a manual confirmation because there's no payment gateway wired in yet.
-//   To make this real: replace the "I've paid" step with a call to your backend, which
-//   creates a UPI collect request via a PSP (Razorpay/Cashfree) and polls/receives a
-//   webhook when the payment actually clears, then calls onConfirmed() from that result.
-const PaymentSheet = ({ amount, workerName, onClose, onConfirmed }) => {
-  const [step, setStep] = useState("pay"); // "pay" | "waiting" | "confirming"
-  const [upiId, setUpiId] = useState("");
-  const mobile = useMemo(() => isMobileDevice(), []);
-  const txnRef = useMemo(() => generateTxnRef(), []);
+// - onPaid: (jobId) => void — called ONLY after the server has verified the payment
+//   signature and created the booking. Nothing here is trusted client-side.
+const PaymentSheet = ({ amount, workerId, workerName, onClose, onPaid }) => {
+  const [loading, setLoading] = useState(false);
 
-  const upiLink = useMemo(
-    () =>
-      buildUpiIntentLink({
-        payeeVpa: MERCHANT_VPA,
-        payeeName: MERCHANT_NAME,
-        amount,
-        note: `Booking fee - ${workerName}`,
-        txnRef,
-      }),
-    [amount, workerName, txnRef]
-  );
-
-  // On mobile, pressing "Pay" opens the UPI app directly.
-  const handlePayOnMobile = () => {
-    window.location.href = upiLink;
-    setStep("waiting");
-  };
-
-  // On web, this mimics the "enter UPI ID, we send you a request" flow (like Amazon/Swiggy web checkout).
-  // TODO: wire this to your backend's UPI Collect Request API call instead of a client-side timer.
-  const handleSendRequest = () => {
-    if (!upiId.includes("@")) {
-      toast.error("Enter a valid UPI ID, e.g. name@bank");
-      return;
-    }
-    setStep("waiting");
-    toast.success("Payment request sent to your UPI app");
-  };
-
-  const handleConfirm = async () => {
-    setStep("confirming");
+  const handlePay = async () => {
+    setLoading(true);
     try {
-      // On success the parent unmounts this sheet (it navigates to the booking).
-      // Don't touch state after that — only recover state on failure.
-      await onConfirmed();
+      const scriptReady = await loadRazorpayScript();
+      if (!scriptReady) throw new Error("Could not load the payment SDK — check your connection");
+
+      const { data: order, error: orderError } = await supabase.functions.invoke(
+        "create-razorpay-order",
+        { body: { amount } }
+      );
+      if (orderError) throw new Error(orderError.message);
+      if (order?.error) throw new Error(order.error);
+
+      const checkout = new window.Razorpay({
+        key: order.key_id,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.order_id,
+        name: "Kaem Kaar",
+        description: `Booking fee — ${workerName}`,
+        theme: { color: "#111827" },
+        handler: async (response) => {
+          try {
+            const { data: result, error: verifyError } = await supabase.functions.invoke(
+              "verify-booking-payment",
+              {
+                body: {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  workerId,
+                },
+              }
+            );
+            if (verifyError) throw new Error(verifyError.message);
+            if (result?.error) throw new Error(result.error);
+
+            toast.success("Payment verified — worker booked!");
+            onPaid(result.job_id);
+          } catch (error) {
+            toast.error(error.message || "Payment verification failed");
+            setLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: () => setLoading(false),
+        },
+      });
+
+      checkout.on("payment.failed", () => {
+        toast.error("Payment failed — please try again");
+        setLoading(false);
+      });
+
+      checkout.open();
     } catch (error) {
-      toast.error(error?.message || "Something went wrong — please try again");
-      setStep("waiting");
+      toast.error(error.message || "Could not start payment");
+      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, []);
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/50 flex items-end justify-center">
-      <div className="w-full max-w-[480px] bg-background rounded-t-3xl p-6 space-y-5 animate-in slide-in-from-bottom">
+      <div className="w-full max-w-[480px] bg-background rounded-t-3xl p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">Confirm booking</h2>
-          <button onClick={onClose} className="text-muted-foreground">
+          <button onClick={onClose} disabled={loading} className="text-muted-foreground disabled:opacity-40">
             <X size={20} />
           </button>
         </div>
@@ -92,59 +93,17 @@ const PaymentSheet = ({ amount, workerName, onClose, onConfirmed }) => {
           </div>
         </div>
 
-        {step === "pay" && (
-          mobile ? (
-            <Button
-              onClick={handlePayOnMobile}
-              className="w-full h-14 rounded-xl text-base font-bold flex items-center justify-center gap-2"
-            >
-              <Smartphone size={18} /> Pay ₹{amount} with UPI app
-            </Button>
-          ) : (
-            <div className="space-y-3">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Your UPI ID
-              </label>
-              <Input
-                value={upiId}
-                onChange={(event) => setUpiId(event.target.value)}
-                placeholder="yourname@okhdfcbank"
-                className="h-12 rounded-xl"
-              />
-              <Button onClick={handleSendRequest} className="w-full h-12 rounded-xl font-bold">
-                Send payment request
-              </Button>
-            </div>
-          )
-        )}
+        <button
+          onClick={handlePay}
+          disabled={loading}
+          className="w-full h-14 rounded-xl text-base font-bold bg-primary text-primary-foreground flex items-center justify-center gap-2 disabled:opacity-60"
+        >
+          {loading ? <Loader2 className="animate-spin" size={18} /> : `Pay ₹${amount} securely`}
+        </button>
 
-        {step === "waiting" && (
-          <div className="space-y-4 text-center">
-            <p className="text-sm text-muted-foreground">
-              {mobile
-                ? "Complete the payment in your UPI app, then confirm below."
-                : "Approve the request in your UPI app, then confirm below."}
-            </p>
-            <Button
-              onClick={handleConfirm}
-              className="w-full h-12 rounded-xl font-bold flex items-center justify-center gap-2"
-            >
-              <CheckCircle2 size={18} /> I've completed the payment
-            </Button>
-            <button
-              onClick={() => setStep("pay")}
-              className="text-xs font-bold text-muted-foreground underline"
-            >
-              Payment didn't go through, try again
-            </button>
-          </div>
-        )}
-
-        {step === "confirming" && (
-          <div className="flex justify-center py-6">
-            <Loader2 className="animate-spin text-primary" size={28} />
-          </div>
-        )}
+        <p className="text-[11px] text-center text-muted-foreground">
+          Payments are processed and verified by Razorpay. Kaem Kaar never sees your UPI PIN or bank details.
+        </p>
       </div>
     </div>
   );
