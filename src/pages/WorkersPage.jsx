@@ -7,7 +7,7 @@ import WorkerCard from "@/components/WorkerCard";
 import PaymentSheet from "@/components/PaymentSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { CATEGORY_OPTIONS, getCategoryLabel, normalizeCategory } from "@/lib/categories";
+import { CATEGORY_OPTIONS, getCategoryLabel } from "@/lib/categories";
 
 const SKILL_CATEGORIES = {
   repair: ["plumber", "electrician", "painter", "carpenter", "mason", "gardener"],
@@ -128,46 +128,9 @@ const WorkersPage = () => {
 
   const categoryPills = [{ id: "all", label: "All" }, ...CATEGORY_OPTIONS];
 
-  const handleBookingConfirmed = async () => {
-    const worker = bookingWorker;
-    if (!worker || !user) return;
-
-    const category = normalizeCategory(worker.skills?.[0] || activeCategory);
-    const jobPayload = {
-      hirer_id: user.id,
-      title: `${BOOKING_TITLE_PREFIX} ${worker.full_name || "Worker"}`,
-      description: `Direct booking. Booking fee of ₹${BOOKING_FEE} paid via UPI.`,
-      location_name: worker.location_name || "Not specified",
-      pay_amount: worker.expected_pay_per_day || 0,
-      status: "in_progress",
-      category,
-      assigned_worker_id: worker.id,
-    };
-
-    const { data: job, error: jobError } = await supabase
-      .from("jobs")
-      .insert(jobPayload)
-      .select()
-      .single();
-
-    if (jobError) {
-      toast.error(jobError.message || "Could not create booking");
-      return;
-    }
-
-    const { error: appError } = await supabase.from("applications").insert({
-      job_id: job.id,
-      worker_id: worker.id,
-      status: "accepted",
-    });
-
-    if (appError) {
-      toast.error("Booking created but couldn't link the worker — check Applications table");
-    }
-
-    toast.success(`Booked ${worker.full_name || "worker"}!`);
+  const handleBookingPaid = (jobId) => {
     setBookingWorker(null);
-    navigate(`/jobs/${job.id}`);
+    navigate(`/jobs/${jobId}`);
   };
 
   return (
@@ -296,9 +259,10 @@ const WorkersPage = () => {
       {bookingWorker && (
         <PaymentSheet
           amount={BOOKING_FEE}
+          workerId={bookingWorker.id}
           workerName={bookingWorker.full_name || "Worker"}
           onClose={() => setBookingWorker(null)}
-          onConfirmed={handleBookingConfirmed}
+          onPaid={handleBookingPaid}
         />
       )}
     </AppShell>
