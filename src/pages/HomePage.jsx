@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import AppShell from "@/components/AppShell";
+import NotificationBell from "@/components/NotificationBell";
 import {
   Wrench,
   Plus,
@@ -110,8 +111,9 @@ const HomePage = () => {
       <div className="flex flex-col min-h-full">
         {/* Dark Hero Section */}
         <div className="px-5 pt-6 pb-12 bg-[hsl(25,90%,10%)] text-[hsl(38,71%,93%)]">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-3 mb-6">
             <h1 className="text-xl font-black tracking-tighter">Kaem Kaar</h1>
+            <div className="ml-auto"><NotificationBell /></div>
             <div 
               onClick={() => navigate("/profile")}
               className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-bold border border-white/20 cursor-pointer"

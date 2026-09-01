@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import BottomNav from "./BottomNav";
+import NotificationBell from "./NotificationBell";
 
 const AppShell = forwardRef(({ children, showNav = true, header }, ref) => {
   return (
@@ -9,7 +10,8 @@ const AppShell = forwardRef(({ children, showNav = true, header }, ref) => {
     >
       {header && (
         <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border px-4 h-14 flex items-center">
-          {header}
+          <div className="min-w-0 flex-1">{header}</div>
+          <div className="ml-3 shrink-0"><NotificationBell /></div>
         </header>
       )}
       <main className={showNav ? "pb-20" : ""}>{children}</main>
