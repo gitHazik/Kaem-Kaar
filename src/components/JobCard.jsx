@@ -1,8 +1,6 @@
 import { MapPin, Calendar, ArrowRight, CheckCircle } from "lucide-react";
-
 const JobCard = ({ title, location, pay, date, status, onApply, onView }) => {
   const isApplied = status === "applied";
-
   return (
     <div
       className="p-4 border border-border rounded-2xl bg-card press cursor-pointer hover:border-primary/30 transition-colors"
@@ -34,10 +32,18 @@ const JobCard = ({ title, location, pay, date, status, onApply, onView }) => {
             e.stopPropagation();
             onApply();
           }}
-          className="mt-4 w-full h-12 bg-primary text-primary-foreground font-bold rounded-xl active:scale-[0.97] transition-all text-sm flex items-center justify-center gap-2"
+          className="mt-4 w-full h-11 bg-primary text-primary-foreground font-bold rounded-xl active:scale-[0.97] transition-all text-xs flex items-center justify-between px-3.5"
         >
-          Apply Now
-          <ArrowRight size={16} />
+          <span className="flex items-center gap-1.5">
+            Apply Now <ArrowRight size={14} />
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="text-[10px] line-through opacity-70">₹50</span>
+            <span className="text-[9px] font-black bg-white/20 px-1.5 py-0.5 rounded-md">
+              80% OFF
+            </span>
+            <span className="text-sm font-black">₹10</span>
+          </span>
         </button>
       ) : (
         <div className="mt-3 flex items-center justify-end text-xs font-bold text-primary">
@@ -47,5 +53,4 @@ const JobCard = ({ title, location, pay, date, status, onApply, onView }) => {
     </div>
   );
 };
-
 export default JobCard;
