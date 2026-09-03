@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import AppShell from "@/components/AppShell";
+import PaymentSheet from "@/components/PaymentSheet";
 import { Button } from "@/components/ui/button";
 import {
   MessageCircle,
@@ -33,6 +34,8 @@ L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
   shadowUrl: markerShadow,
 });
+
+const APPLICATION_FEE = 10;
 
 const JobLocationMap = ({ lat, lng, title }) => (
   <div className="space-y-2">
@@ -96,6 +99,7 @@ const JobDetailPage = () => {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewCategory, setReviewCategory] = useState("");
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [showApplyPayment, setShowApplyPayment] = useState(false);
 
   const isHirer = job?.hirer_id === user?.id;
 
@@ -170,29 +174,12 @@ const JobDetailPage = () => {
     };
   }, [fetchJobAndApplicants, id]);
 
-  const handleApply = async () => {
-    if (!user) return;
-    setActionLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("applications")
-        .insert({ job_id: id, worker_id: user.id, status: "pending" })
-        .select().single();
-
-      if (error) throw error;
-      
-      await supabase.from("messages").insert({
-        job_id: id, sender_id: user.id, receiver_id: job.hirer_id,
-        content: `👋 ${profile?.full_name || "A worker"} applied for "${job.title}"`,
-      });
-
-      setUserApplication(data);
-      toast.success("Applied!");
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setActionLoading(false);
-    }
+  // Called only after the server has verified the Razorpay payment signature and
+  // created the application record — nothing here is trusted client-side.
+  const handleApplicationPaid = (result) => {
+    setUserApplication(result.application);
+    setShowApplyPayment(false);
+    toast.success("Applied!");
   };
 
   const handleWithdraw = async () => {
@@ -405,9 +392,20 @@ const JobDetailPage = () => {
                   </div>
                 </div>
               ) : (
-                <Button className="w-full h-16 rounded-2xl bg-primary text-white font-black text-lg shadow-xl" onClick={handleApply} disabled={actionLoading}>
-                   {actionLoading ? <Loader2 className="animate-spin" /> : <>APPLY NOW <Send size={20} className="ml-2" /></>}
-                </Button>
+                <button
+                  onClick={() => setShowApplyPayment(true)}
+                  disabled={actionLoading}
+                  className="w-full h-16 rounded-2xl bg-primary text-white shadow-xl flex items-center justify-between px-6 disabled:opacity-60"
+                >
+                  <span className="flex items-center gap-2 font-black text-lg">
+                    APPLY NOW <Send size={20} />
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-xs line-through opacity-70">₹50</span>
+                    <span className="text-[10px] font-black bg-white/20 px-1.5 py-0.5 rounded">80% OFF</span>
+                    <span className="text-base font-black">₹{APPLICATION_FEE}</span>
+                  </span>
+                </button>
               )
             ) : (
               <p className="text-center text-muted-foreground py-10">Applications closed.</p>
@@ -439,6 +437,17 @@ const JobDetailPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showApplyPayment && (
+        <PaymentSheet
+          amount={APPLICATION_FEE}
+          label={`Application fee — ${job.title}`}
+          verifyFunctionName="verify-application-payment"
+          verifyPayload={{ jobId: job.id }}
+          onClose={() => setShowApplyPayment(false)}
+          onPaid={handleApplicationPaid}
+        />
       )}
     </AppShell>
   );
