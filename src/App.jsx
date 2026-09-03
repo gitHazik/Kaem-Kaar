@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-route
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Loader2 } from "lucide-react";
 
@@ -15,6 +16,7 @@ const PostAvailabilityPage = lazy(() => import("./pages/PostAvailabilityPage"));
 const JobDetailPage = lazy(() => import("./pages/JobDetailPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const MessagesPage = lazy(() => import("./pages/MessagesPage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const WorkerProfileSetup = lazy(() => import("./pages/WorkerProfileSetup"));
 const RoleSelectionPage = lazy(() => import("./pages/RoleSelectionPage"));
@@ -78,8 +80,9 @@ const App = () => {
           <Sonner position="top-center" />
           <AuthProvider>
             <BrowserRouter>
-              <Suspense fallback={<RouteFallback />}>
-                <Routes>
+              <NotificationProvider>
+                <Suspense fallback={<RouteFallback />}>
+                  <Routes>
                   <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
 
                   <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
@@ -91,14 +94,16 @@ const App = () => {
                   <Route path="/chat/:jobId/:workerId" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
                   <Route path="/chat/direct/:workerId" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
                   <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+                  <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                   <Route path="/assistant" element={<ProtectedRoute><AIChatbotPage /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                   <Route path="/profile/setup" element={<ProtectedRoute><WorkerProfileSetup /></ProtectedRoute>} />
                   <Route path="/role-selection" element={<ProtectedRoute><RoleSelectionPage /></ProtectedRoute>} />
 
                   <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Suspense>
+                  </Routes>
+                </Suspense>
+              </NotificationProvider>
             </BrowserRouter>
           </AuthProvider>
         </TooltipProvider>

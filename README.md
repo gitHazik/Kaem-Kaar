@@ -67,14 +67,15 @@ The application is built as a responsive React web app and can also be packaged 
 In the Supabase dashboard:
 
 1. Enable Google and Facebook under **Authentication > Providers** and configure each provider's credentials.
-2. Add the local URL and every deployed app origin under **Authentication > URL Configuration > Redirect URLs**:
+2. Set **Authentication > URL Configuration > Site URL** to the production app origin, for example `https://your-deployed-domain.example/`. Do not leave this set to a localhost URL.
+3. Add the local URL and every deployed app origin under **Authentication > URL Configuration > Redirect URLs**:
 
 	```text
 	http://localhost:5173/
 	https://your-deployed-domain.example/
 	```
 
-The client uses the PKCE flow and does not collect or store passwords. OAuth redirects to the current app origin followed by `/`.
+The client uses the PKCE flow and does not collect or store passwords. OAuth redirects to the current app origin followed by `/`. The Google and Facebook provider callback URL should remain Supabase's callback URL (`https://<project-ref>.supabase.co/auth/v1/callback`); the app origin belongs in Supabase's URL Configuration.
 
 ## Available scripts
 
