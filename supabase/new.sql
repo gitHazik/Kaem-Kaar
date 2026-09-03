@@ -128,6 +128,7 @@ CREATE TABLE public.messages (
   sender_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT false NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
@@ -148,6 +149,126 @@ CREATE POLICY "Users can delete messages they are part of"
   ON public.messages FOR DELETE USING (
     auth.uid() = sender_id OR auth.uid() = receiver_id
   );
+
+CREATE POLICY "Receivers can mark messages read"
+  ON public.messages FOR UPDATE USING (auth.uid() = receiver_id)
+  WITH CHECK (auth.uid() = receiver_id);
+
+
+-- 4b. NOTIFICATIONS
+-- ============================================================
+CREATE TABLE public.notifications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  action_url TEXT,
+  data JSONB DEFAULT '{}'::jsonb NOT NULL,
+  is_read BOOLEAN DEFAULT false NOT NULL,
+  read_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX notifications_user_created_idx
+  ON public.notifications(user_id, created_at DESC);
+CREATE INDEX notifications_unread_idx
+  ON public.notifications(user_id, is_read) WHERE is_read = false;
+
+CREATE POLICY "Users can view their notifications"
+  ON public.notifications FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their notifications"
+  ON public.notifications FOR UPDATE USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their notifications"
+  ON public.notifications FOR DELETE USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.notify_message_recipient()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  sender_name TEXT;
+  target_url TEXT;
+BEGIN
+  IF NEW.receiver_id IS NULL OR NEW.receiver_id = NEW.sender_id THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT COALESCE(full_name, 'Someone') INTO sender_name
+  FROM public.profiles WHERE id = NEW.sender_id;
+
+  target_url := CASE
+    WHEN NEW.job_id IS NULL THEN '/chat/direct/' || NEW.sender_id::text
+    ELSE '/chat/' || NEW.job_id::text || '/' || NEW.sender_id::text
+  END;
+
+  INSERT INTO public.notifications (user_id, type, title, message, action_url, data)
+  VALUES (
+    NEW.receiver_id,
+    'message',
+    'New message from ' || COALESCE(sender_name, 'Someone'),
+    LEFT(NEW.content, 180),
+    target_url,
+    jsonb_build_object('message_id', NEW.id, 'sender_id', NEW.sender_id, 'job_id', NEW.job_id)
+  );
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_message_created
+  AFTER INSERT ON public.messages
+  FOR EACH ROW EXECUTE FUNCTION public.notify_message_recipient();
+
+CREATE OR REPLACE FUNCTION public.notify_application_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  job_owner UUID;
+  job_title TEXT;
+  target_user UUID;
+  notification_title TEXT;
+  notification_message TEXT;
+  target_url TEXT;
+BEGIN
+  SELECT hirer_id, title INTO job_owner, job_title
+  FROM public.jobs WHERE id = NEW.job_id;
+
+  IF TG_OP = 'INSERT' THEN
+    target_user := job_owner;
+    notification_title := 'New job application';
+    notification_message := 'A worker applied for ' || COALESCE(job_title, 'your job');
+    target_url := '/jobs/' || NEW.job_id::text;
+  ELSIF TG_OP = 'UPDATE' AND NEW.status IS DISTINCT FROM OLD.status THEN
+    target_user := NEW.worker_id;
+    notification_title := 'Application ' || NEW.status;
+    notification_message := 'Your application for ' || COALESCE(job_title, 'a job') || ' was ' || NEW.status || '.';
+    target_url := '/jobs/' || NEW.job_id::text;
+  ELSE
+    RETURN NEW;
+  END IF;
+
+  IF target_user IS NOT NULL AND target_user <> auth.uid() THEN
+    INSERT INTO public.notifications (user_id, type, title, message, action_url, data)
+    VALUES (target_user, 'application', notification_title, notification_message, target_url,
+      jsonb_build_object('application_id', NEW.id, 'job_id', NEW.job_id));
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_application_notification
+  AFTER INSERT OR UPDATE OF status ON public.applications
+  FOR EACH ROW EXECUTE FUNCTION public.notify_application_change();
 
 
 -- 5. WORKER REVIEWS
@@ -235,3 +356,4 @@ CREATE POLICY "Users can update own avatar"
 -- ============================================================
 ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.jobs;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;

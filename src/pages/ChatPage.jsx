@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ChatBubble from "@/components/ChatBubble";
+import NotificationBell from "@/components/NotificationBell";
 import { ArrowLeft, Send } from "lucide-react";
 import { toast } from "sonner";
 
@@ -126,10 +127,11 @@ const ChatPage = () => {
     <div className="max-w-[480px] mx-auto min-h-svh bg-background flex flex-col">
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border px-4 h-14 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="press p-1"><ArrowLeft size={20} /></button>
-        <div>
+        <div className="min-w-0 flex-1">
           <h2 className="font-bold text-foreground truncate text-sm leading-none">{chatTitle}</h2>
           <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-wider">{isDirectChat ? "Direct message" : "Job Discussion"}</p>
         </div>
+        <NotificationBell />
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
