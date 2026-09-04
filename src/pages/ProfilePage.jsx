@@ -13,6 +13,7 @@ import {
   Sun,
   Moon,
   User,
+  ShieldCheck,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -102,6 +103,14 @@ const ProfilePage = () => {
             onClick={() => navigate("/profile/setup")}
           >
             <Pencil size={16} className="mr-2" /> Edit Profile Details
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full h-12 rounded-xl font-bold press"
+            onClick={() => navigate("/privacy-policy")}
+          >
+            <ShieldCheck size={16} className="mr-2" /> Privacy Policy
           </Button>
 
           <Button 
