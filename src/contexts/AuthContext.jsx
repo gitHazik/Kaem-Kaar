@@ -5,6 +5,7 @@ import { Browser } from "@capacitor/browser";
 import { supabase } from "@/integrations/supabase/client";
 
 const AuthContext = createContext(undefined);
+const NATIVE_OAUTH_REDIRECT = "com.kaemkaar.app://auth/callback";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -45,7 +46,7 @@ export const AuthProvider = ({ children }) => {
 
   const signInWithProvider = async (provider) => {
     const redirectTo = Capacitor.isNativePlatform()
-      ? "com.kaemkaar.app://auth/callback"
+      ? NATIVE_OAUTH_REDIRECT
       : `${window.location.origin}/`;
 
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -81,13 +82,25 @@ export const AuthProvider = ({ children }) => {
 
     if (Capacitor.isNativePlatform()) {
       const handleAuthUrl = async (url) => {
-        const callbackUrl = new URL(url);
-        const code = callbackUrl.searchParams.get("code");
-        if (!code) return;
+        try {
+          const callbackUrl = new URL(url);
+          const callbackError = callbackUrl.searchParams.get("error_description") || callbackUrl.searchParams.get("error");
+          const code = callbackUrl.searchParams.get("code");
 
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) console.error("Error completing OAuth sign-in:", error);
-        await Browser.close();
+          if (callbackError) {
+            console.error("OAuth sign-in was rejected:", callbackError);
+            return;
+          }
+
+          if (!code) return;
+
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) console.error("Error completing OAuth sign-in:", error);
+        } catch (error) {
+          console.error("Error handling OAuth callback:", error);
+        } finally {
+          await Browser.close();
+        }
       };
 
       appUrlListener = App.addListener("appUrlOpen", ({ url }) => handleAuthUrl(url));

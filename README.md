@@ -68,14 +68,15 @@ In the Supabase dashboard:
 
 1. Enable Google and Facebook under **Authentication > Providers** and configure each provider's credentials.
 2. Set **Authentication > URL Configuration > Site URL** to the production app origin, for example `https://your-deployed-domain.example/`. Do not leave this set to a localhost URL.
-3. Add the local URL and every deployed app origin under **Authentication > URL Configuration > Redirect URLs**:
+3. Add the local URL, every deployed app origin, and the Android callback URI under **Authentication > URL Configuration > Redirect URLs**:
 
 	```text
 	http://localhost:5173/
 	https://your-deployed-domain.example/
+	 com.kaemkaar.app://auth/callback
 	```
 
-The client uses the PKCE flow and does not collect or store passwords. OAuth redirects to the current app origin followed by `/`. The Google and Facebook provider callback URL should remain Supabase's callback URL (`https://<project-ref>.supabase.co/auth/v1/callback`); the app origin belongs in Supabase's URL Configuration.
+	The client uses the PKCE flow and does not collect or store passwords. Web OAuth redirects to the current app origin followed by `/`; Android OAuth returns through `com.kaemkaar.app://auth/callback`, which reopens the APK. The Google and Facebook provider callback URL should remain Supabase's callback URL (`https://<project-ref>.supabase.co/auth/v1/callback`); the app redirect URLs belong in Supabase's URL Configuration.
 
 ## Available scripts
 
