@@ -259,10 +259,11 @@ const WorkersPage = () => {
       {bookingWorker && (
         <PaymentSheet
           amount={BOOKING_FEE}
-          workerId={bookingWorker.id}
-          workerName={bookingWorker.full_name || "Worker"}
+          label={`Booking fee — ${bookingWorker.full_name || "Worker"}`}
+          verifyFunctionName="verify-booking-payment"
+          verifyPayload={{ workerId: bookingWorker.id }}
           onClose={() => setBookingWorker(null)}
-          onPaid={handleBookingPaid}
+          onPaid={(result) => handleBookingPaid(result.job_id)}
         />
       )}
     </AppShell>
