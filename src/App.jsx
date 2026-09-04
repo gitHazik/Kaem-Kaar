@@ -23,6 +23,7 @@ const RoleSelectionPage = lazy(() => import("./pages/RoleSelectionPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const AIChatbotPage = lazy(() => import("./pages/AIChatbotPage"));
 const SplashScreen = lazy(() => import("./pages/SplashScreen"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
 
 const queryClient = new QueryClient();
 
@@ -97,6 +98,7 @@ const App = () => {
                   <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                   <Route path="/assistant" element={<ProtectedRoute><AIChatbotPage /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                  <Route path="/privacy-policy" element={<ProtectedRoute><PrivacyPolicyPage /></ProtectedRoute>} />
                   <Route path="/profile/setup" element={<ProtectedRoute><WorkerProfileSetup /></ProtectedRoute>} />
                   <Route path="/role-selection" element={<ProtectedRoute><RoleSelectionPage /></ProtectedRoute>} />
 
