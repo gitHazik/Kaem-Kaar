@@ -4,14 +4,17 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { loadRazorpayScript } from "@/lib/razorpay";
 
-// PaymentSheet
-// - amount: number, the booking fee (e.g. 10)
-// - workerId: the worker being booked — sent to the server, which looks up their details
-// - workerName: shown in the sheet and the Razorpay checkout description
+// PaymentSheet — generic, reusable for any "pay a small fee, then do X" flow.
+// - amount: number, the fee to collect
+// - label: string shown in the sheet and the Razorpay description (e.g. "Booking fee — Vyrix",
+//   "Application fee — House cleaning job")
+// - verifyFunctionName: which edge function verifies the signature and performs the action
+//   (e.g. "verify-booking-payment", "verify-application-payment")
+// - verifyPayload: extra fields to send to that function (e.g. { workerId } or { jobId })
 // - onClose: () => void
-// - onPaid: (jobId) => void — called ONLY after the server has verified the payment
-//   signature and created the booking. Nothing here is trusted client-side.
-const PaymentSheet = ({ amount, workerId, workerName, onClose, onPaid }) => {
+// - onPaid: (resultFromEdgeFunction) => void — called ONLY after the server verifies the
+//   payment signature and completes the action. Nothing here is trusted client-side.
+const PaymentSheet = ({ amount, label, verifyFunctionName, verifyPayload, onClose, onPaid }) => {
   const [loading, setLoading] = useState(false);
 
   const handlePay = async () => {
@@ -33,26 +36,26 @@ const PaymentSheet = ({ amount, workerId, workerName, onClose, onPaid }) => {
         currency: order.currency,
         order_id: order.order_id,
         name: "Kaem Kaar",
-        description: `Booking fee — ${workerName}`,
+        description: label,
         theme: { color: "#111827" },
         handler: async (response) => {
           try {
             const { data: result, error: verifyError } = await supabase.functions.invoke(
-              "verify-booking-payment",
+              verifyFunctionName,
               {
                 body: {
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
                   razorpay_signature: response.razorpay_signature,
-                  workerId,
+                  ...verifyPayload,
                 },
               }
             );
             if (verifyError) throw new Error(verifyError.message);
             if (result?.error) throw new Error(result.error);
 
-            toast.success("Payment verified — worker booked!");
-            onPaid(result.job_id);
+            toast.success("Payment verified!");
+            onPaid(result);
           } catch (error) {
             toast.error(error.message || "Payment verification failed");
             setLoading(false);
@@ -79,17 +82,20 @@ const PaymentSheet = ({ amount, workerId, workerName, onClose, onPaid }) => {
     <div className="fixed inset-0 z-[70] bg-black/50 flex items-end justify-center">
       <div className="w-full max-w-[480px] bg-background rounded-t-3xl p-6 space-y-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">Confirm booking</h2>
+          <h2 className="text-lg font-bold">Confirm payment</h2>
           <button onClick={onClose} disabled={loading} className="text-muted-foreground disabled:opacity-40">
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex items-baseline justify-between bg-muted/50 rounded-2xl p-4">
-          <span className="text-sm text-muted-foreground">Booking fee</span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xs line-through text-muted-foreground">₹50</span>
-            <span className="text-2xl font-black text-foreground">₹{amount}</span>
+        <div className="space-y-1">
+          {label && <p className="text-xs text-muted-foreground truncate">{label}</p>}
+          <div className="flex items-baseline justify-between bg-muted/50 rounded-2xl p-4">
+            <span className="text-sm text-muted-foreground">Amount</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs line-through text-muted-foreground">₹50</span>
+              <span className="text-2xl font-black text-foreground">₹{amount}</span>
+            </div>
           </div>
         </div>
 

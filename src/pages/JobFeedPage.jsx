@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import JobCard from "@/components/JobCard";
 import AppShell from "@/components/AppShell";
+import PaymentSheet from "@/components/PaymentSheet";
 import { Button } from "@/components/ui/button";
 import {
   Plus,
@@ -16,6 +17,8 @@ import {
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { isActiveJobStatus, isCompletedJobStatus } from "@/lib/job-status";
+
+const APPLICATION_FEE = 10;
 
 const statusConfig = {
   pending: { label: "Pending", classes: "bg-yellow-100 text-yellow-800" },
@@ -61,7 +64,6 @@ const MyApplications = ({ userId }) => {
     fetch();
   }, [fetch]);
 
-  // --- NEW UNDO LOGIC ---
   const handleWithdraw = async (appId) => {
     const { error } = await supabase
       .from("applications")
@@ -72,7 +74,6 @@ const MyApplications = ({ userId }) => {
       toast.error("Could not withdraw application");
     } else {
       toast.success("Application withdrawn");
-      // Refresh the list locally
       setApplications(prev => prev.filter(a => a.id !== appId));
     }
   };
@@ -105,7 +106,6 @@ const MyApplications = ({ userId }) => {
             <div className="flex justify-between items-center pt-2 border-t border-border/50">
               <span className="text-xs font-bold text-primary">₹{app.jobs?.pay_amount}</span>
               
-              {/* --- UNDO BUTTON --- */}
               {isPending && (
                 <button
                   onClick={() => handleWithdraw(app.id)}
@@ -132,6 +132,7 @@ const JobFeedPage = () => {
   const [appliedJobIds, setAppliedJobIds] = useState(new Set());
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [applyingJob, setApplyingJob] = useState(null); // job currently being paid for
 
   const visibleJobs = jobs.filter((job) => {
     if (!isHirer) return true;
@@ -200,30 +201,12 @@ const JobFeedPage = () => {
     }
   }, [tab, fetchJobs]);
 
-  const handleApply = async (jobId) => {
-    if (!user) return;
-    const selectedJob = jobs.find((j) => j.id === jobId);
-
-    const { error } = await supabase.from("applications").insert({
-      job_id: jobId,
-      worker_id: user.id,
-      status: "pending",
-    });
-
-    if (error) {
-      toast.error(error.code === "23505" ? "Already applied" : error.message);
-      return;
-    }
-
-    await supabase.from("messages").insert({
-      job_id: jobId,
-      sender_id: user.id,
-      receiver_id: selectedJob.hirer_id,
-      content: `👋 ${profile?.full_name || "A worker"} applied for "${selectedJob?.title}"`,
-    });
-
-    toast.success("Applied successfully!");
+  // Called only after the server has verified the Razorpay payment signature and
+  // created the application record — nothing here is trusted client-side.
+  const handleApplicationPaid = (result, jobId) => {
+    setApplyingJob(null);
     setAppliedJobIds((prev) => new Set(prev).add(jobId));
+    toast.success("Applied successfully!");
   };
 
   return (
@@ -329,7 +312,7 @@ const JobFeedPage = () => {
                 }
                 onApply={
                   !isHirer && !appliedJobIds.has(job.id)
-                    ? () => handleApply(job.id)
+                    ? () => setApplyingJob(job)
                     : undefined
                 }
                 onView={() => navigate(`/jobs/${job.id}`)}
@@ -338,6 +321,17 @@ const JobFeedPage = () => {
           </div>
         )}
       </div>
+
+      {applyingJob && (
+        <PaymentSheet
+          amount={APPLICATION_FEE}
+          label={`Application fee — ${applyingJob.title}`}
+          verifyFunctionName="verify-application-payment"
+          verifyPayload={{ jobId: applyingJob.id }}
+          onClose={() => setApplyingJob(null)}
+          onPaid={(result) => handleApplicationPaid(result, applyingJob.id)}
+        />
+      )}
     </AppShell>
   );
 };
