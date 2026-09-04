@@ -122,7 +122,6 @@ const HomePage = () => {
             </div>
           </div>
 
-          <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Salam, {firstName}</p>
           <h2 className="text-3xl font-black mt-2 leading-tight">
             {isHirer ? "Manage your posts\n& find workers" : "Find skilled jobs\nnear you today"}
           </h2>
