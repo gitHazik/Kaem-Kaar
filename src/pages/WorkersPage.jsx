@@ -192,7 +192,7 @@ const WorkersPage = () => {
             ) : filteredWorkers.length > 0 ? (
               <div className="space-y-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{filteredWorkers.length} available profiles</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {filteredWorkers.map((worker) => (
                     <WorkerCard
                       key={worker.id}

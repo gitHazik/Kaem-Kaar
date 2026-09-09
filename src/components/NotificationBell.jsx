@@ -22,7 +22,7 @@ const NotificationBell = () => {
         {unreadCount > 0 && <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-destructive text-[10px] font-black text-destructive-foreground flex items-center justify-center">{unreadCount > 99 ? "99+" : unreadCount}</span>}
       </button>
       {open && (
-        <div className="absolute right-0 top-12 z-[60] w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+        <div className="fixed left-1/2 top-16 z-[70] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div><p className="font-bold text-sm">Notifications</p><p className="text-[11px] text-muted-foreground">{unreadCount ? `${unreadCount} unread` : "All caught up"}</p></div>
             {unreadCount > 0 && <button onClick={markAllAsRead} className="flex items-center gap-1 text-xs font-bold text-primary"><CheckCheck size={15} /> Read all</button>}
