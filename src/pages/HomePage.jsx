@@ -197,16 +197,16 @@ const HomePage = () => {
                       animate={{ opacity: 1, y: 0 }}
                       key={job.id}
                       onClick={() => navigate(`/jobs/${job.id}`)}
-                      className="p-4 bg-card border rounded-2xl flex items-center justify-between press shadow-sm"
+                      className="p-4 bg-card border rounded-2xl flex items-center justify-between gap-3 press shadow-sm"
                     >
-                      <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="flex items-center gap-3 min-w-0 flex-1 max-w-50">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                           <Briefcase size={18} />
                         </div>
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-sm truncate">{job.title}</h4>
-                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
-                            <MapPin size={10} className="text-primary" />
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-bold text-sm break-words leading-snug line-clamp-2">{job.title}</h4>
+                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5 min-w-0">
+                            <MapPin size={10} className="text-primary shrink-0" />
                             <span className="truncate">{job.location_name}</span>
                           </div>
                         </div>
