@@ -312,10 +312,10 @@ const JobDetailPage = () => {
       <div className="px-4 py-6 space-y-6 pb-24">
         
         {/* JOB INFO CARD */}
-        <section className="bg-card p-6 rounded-[2rem] border border-border shadow-sm space-y-5">
-          <div className="flex justify-between items-start">
-            <h1 className="text-2xl font-black tracking-tighter leading-tight">{job?.title}</h1>
-            <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${job?.status === "open" ? "bg-success/10 text-success border-success/20" : "bg-primary/10 text-primary border-primary/20"}`}>
+        <section className="bg-card p-6 rounded-[2rem] border border-border shadow-sm space-y-5 ">
+          <div className="flex justify-between items-start gap-3">
+            <h1 className="flex-1 min-w-0 text-2xl font-black tracking-tighter leading-tight text-foreground whitespace-normal break-words">{job?.title}</h1>
+            <div className={`shrink-0 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${job?.status === "open" ? "bg-success/10 text-success border-success/20" : "bg-primary/10 text-primary border-primary/20"}`}>
               {job?.status}
             </div>
           </div>
