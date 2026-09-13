@@ -169,7 +169,7 @@ const HomePage = () => {
           </section>
 
           {/* JOBS LIST SECTION */}
-          <section className="space-y-4">
+          <section className="space-y-4 ">
             <div className="flex justify-between items-center">
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ">
                 {activeCategoryId === 'all' ? 'Latest Openings' : `${activeCategoryId} Results`}
@@ -197,14 +197,19 @@ const HomePage = () => {
                       animate={{ opacity: 1, y: 0 }}
                       key={job.id}
                       onClick={() => navigate(`/jobs/${job.id}`)}
-                      className="p-4 bg-card border rounded-2xl flex items-center justify-between gap-3 press shadow-sm"
+                      className="p-4 bg-card border rounded-2xl flex items-center justify-between gap-3 press shadow-sm max-w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-4rem)] md:max-w-[calc(100vw-8rem)] lg:max-w-[calc(100vw-12rem)] cursor-pointer hover:border-primary/30 transition-colors"
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1 max-w-50">
+                      <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                           <Briefcase size={18} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-bold text-sm break-words leading-snug line-clamp-2">{job.title}</h4>
+                          <h4
+                            className="font-bold text-sm break-words leading-snug line-clamp-2"
+                            style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
+                          >
+                            {job.title}
+                          </h4>
                           <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5 min-w-0">
                             <MapPin size={10} className="text-primary shrink-0" />
                             <span className="truncate">{job.location_name}</span>
